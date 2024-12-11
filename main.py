@@ -1,6 +1,7 @@
 import pygame
 import os
 import random
+import math
 
 
 # inicializando o pygame e colocando título na janela
@@ -17,7 +18,7 @@ DIM_CANO = (80, 110)
 DIM_MURO = (50, 140)
 DIM_FENO = (50, 50)
 DIM_NUVEM = (110, 75)
-DIM_BALA = (50, 50)
+DIM_BALA = (20, 20)
 
 # constantes de imagens
 IMG_BACKGROUND = pygame.transform.scale(pygame.image.load(os.path.join('img', 'background.png')), (TELA_LARGURA, TELA_ALTURA))
@@ -57,6 +58,7 @@ class Tanque:
         self.lado = lado
         self.velocidade = 3
         self.cano = cano
+        self.balas = []
         self.imagem = IMG_TANQUE_LEFT if lado == 'l' else IMG_TANQUE_RIGHT
 
     def mover(self, direcao):
@@ -66,6 +68,21 @@ class Tanque:
         if direcao == 'r':
             self.x += self.velocidade
 
+    def atirar(self, tela):
+        rect_tanque = self.imagem.get_rect(topleft=(self.x, self.y))
+        base_cano = (rect_tanque.midtop[0], rect_tanque.midtop[1] + 10)
+        delta_cano = (55 * math.sin(math.radians(self.cano.angulo)), 55 * math.cos(math.radians(self.cano.angulo)))
+        fim_cano = (base_cano[0] - delta_cano[0], base_cano[1] - delta_cano[1])
+        print("Base", base_cano)
+        print('Ângulo', self.cano.angulo)
+        print("Delta", delta_cano)
+        print("Fim", fim_cano)
+        print(self.x,self.y)
+        bala = Bala(fim_cano[0], fim_cano[1], self.lado, self.cano.angulo)
+        bala.desenhar(tela)
+        pygame.display.update()
+        self.balas.append(bala)
+
     # desenhar o tanque na tela
     def desenhar(self, tela):
         # cria o retângulo para inserir a imagem na tela com a posição topleft
@@ -73,10 +90,6 @@ class Tanque:
         # desenha as imagens do cano e do tanque na tela
         self.cano.desenhar(tela, rect_tanque)
         tela.blit(self.imagem, rect_tanque.topleft)
-
-    def atirar(self, tela):
-        bala = Bala(self.x, self.y, self.lado)
-        bala.desenhar(tela)
 
     # pegar máscara de pixels para a colisão
     def get_mask(self):
@@ -90,10 +103,10 @@ class Cano:
 
     def mover(self, direcao):
         if direcao == 'up':
-            if self.angulo <= 75:
+            if self.angulo <= 90:
                 self.angulo += 1
         if direcao == 'down':
-            if self.angulo >= -75:
+            if self.angulo >= -90:
                 self.angulo -= 1
 
     def desenhar(self, tela, rect_tanque):
@@ -111,28 +124,31 @@ class Cano:
 
 
 class Bala:
-    def __init__(self, x, y, lado):
+    def __init__(self, x, y, lado, angulo_cano):
         self.x = x
         self.y = y
         self.lado = lado
-        self.velocidade = 0
+        self.angulo_cano = angulo_cano
+        self.velocidade_base = 10
         self.tempo = 0
         self.imagem = IMG_BALA
 
-    def mover(self):
+    def mover(self, tela):
         # calcular o deslocamento
         self.tempo += 1
         # fórmula do sorvetão - S = S0 + V0.t + 1/2.a.t^2
-        deslocamento = 1.2 * (self.tempo**2) + self.velocidade * self.tempo
+        deslocamento_y = 0.5 * (self.tempo**2) + self.velocidade_base * math.cos(self.angulo_cano) * self.tempo
+        deslocamento_x = self.tempo * self.velocidade_base * math.sin(self.angulo_cano)
 
-        # deslocando a bala
-        self.x += deslocamento
-        self.y += deslocamento
-        self.x = self.x
+        # self.y += deslocamento_y
+        # self.x += deslocamento_x
+
+        self.desenhar(tela)
+        pygame.display.update()
 
     def desenhar(self, tela):
         # cria o retângulo para inserir a imagem na tela com a posição topleft
-        rect_bala = self.imagem.get_rect(topleft=(self.x, self.y))
+        rect_bala = self.imagem.get_rect(center=(self.x, self.y))
         # desenha a imagem na tela
         tela.blit(self.imagem, rect_bala.topleft)
 
@@ -229,7 +245,7 @@ class Feno:
         self.mudar_imagens()
         
 
-def desenhar_tela(tela, muro: Muro, feno: Feno, nuvens: list[Nuvem], tanque_left: Tanque, tanque_right: Tanque, balas: list[Bala]):
+def desenhar_tela(tela, muro: Muro, feno: Feno, nuvens: list[Nuvem], tanque_left: Tanque, tanque_right: Tanque):
     # background
     tela.blit(IMG_BACKGROUND, (0, 0))
     # muro
@@ -242,9 +258,6 @@ def desenhar_tela(tela, muro: Muro, feno: Feno, nuvens: list[Nuvem], tanque_left
     # tanques
     tanque_left.desenhar(tela)
     tanque_right.desenhar(tela)
-    # balas
-    for bala in balas:
-        bala.desenhar()
     # atualizar a tela
     pygame.display.update()
 
@@ -258,7 +271,6 @@ def main():
     cano_right = Cano(lado='r', angulo=0)
     tanque_left = Tanque(x=300, lado='l', cano=cano_left)
     tanque_right = Tanque(x=1000, lado='r', cano=cano_right)
-    balas = []
     relogio = pygame.time.Clock()
 
     rodando = True
@@ -306,14 +318,14 @@ def main():
             tanque_right.atirar(tela)
 
         # movendo os componentes da tela
-        for bala in balas:
-            bala.mover()
+        for bala in tanque_left.balas + tanque_right.balas:
+            bala.mover(tela)
         for nuvem in nuvens:
             nuvem.mover()
         feno.mover()
 
         # desenhando a tela
-        desenhar_tela(tela, muro, feno, nuvens, tanque_left, tanque_right, balas)
+        desenhar_tela(tela, muro, feno, nuvens, tanque_left, tanque_right)
 
 
 if __name__ == '__main__':
