@@ -3,16 +3,21 @@ import os
 import random
 
 
+# inicializando o pygame e colocando título na janela
+pygame.init()
+pygame.display.set_caption('Clash of Tanks')
+
 # constantes de tamanho da tela
 TELA_LARGURA = 1400
 TELA_ALTURA = 800
 
 # constantes de dimensões de imagem
 DIM_TANQUE = (100, 50)
-DIM_CANO = (10, 60)
+DIM_CANO = (80, 110)
 DIM_MURO = (50, 140)
 DIM_FENO = (50, 50)
 DIM_NUVEM = (110, 75)
+DIM_BALA = (50, 50)
 
 # constantes de imagens
 IMG_BACKGROUND = pygame.transform.scale(pygame.image.load(os.path.join('img', 'background.png')), (TELA_LARGURA, TELA_ALTURA))
@@ -20,7 +25,7 @@ IMG_TANQUE_LEFT = pygame.transform.scale(pygame.image.load(os.path.join('img', '
 IMG_TANQUE_RIGHT = pygame.transform.scale(pygame.image.load(os.path.join('img', 'tanque_right.png')), DIM_TANQUE)
 IMG_CANO_LEFT = pygame.transform.scale(pygame.image.load(os.path.join('img', 'cano_left.png')), DIM_CANO)
 IMG_CANO_RIGHT = pygame.transform.scale(pygame.image.load(os.path.join('img', 'cano_right.png')), DIM_CANO)
-IMG_BALA = pygame.image.load(os.path.join('img', 'bala.png'))
+IMG_BALA = pygame.transform.scale(pygame.image.load(os.path.join('img', 'bala.png')), DIM_BALA)
 IMG_NUVEM = pygame.transform.scale(pygame.image.load(os.path.join('img', 'nuvem.png')), DIM_NUVEM)
 IMG_NUVEM.set_alpha(220)
 IMG_NUVEM_ARAMIS = pygame.transform.scale(pygame.image.load(os.path.join('img', 'nuvem_aramis.png')), DIM_NUVEM)
@@ -49,6 +54,7 @@ class Tanque:
     def __init__(self, x, lado, cano):
         self.x = x
         self.y = ALTURA_CHAO + 10
+        self.lado = lado
         self.velocidade = 3
         self.cano = cano
         self.imagem = IMG_TANQUE_LEFT if lado == 'l' else IMG_TANQUE_RIGHT
@@ -68,9 +74,9 @@ class Tanque:
         self.cano.desenhar(tela, rect_tanque)
         tela.blit(self.imagem, rect_tanque.topleft)
 
-
-    def atirar():
-        pass
+    def atirar(self, tela):
+        bala = Bala(self.x, self.y, self.lado)
+        bala.desenhar(tela)
 
     # pegar máscara de pixels para a colisão
     def get_mask(self):
@@ -84,18 +90,18 @@ class Cano:
 
     def mover(self, direcao):
         if direcao == 'up':
-            if self.angulo <= 90:
+            if self.angulo <= 75:
                 self.angulo += 1
         if direcao == 'down':
-            if self.angulo >= -90:
-                self.angulo -= 1            
+            if self.angulo >= -75:
+                self.angulo -= 1
 
     def desenhar(self, tela, rect_tanque):
         # alinha o centro inferior do cano ao centro superior do tanque
-        rect_cano = self.imagem.get_rect(center=(rect_tanque.midtop))
+        rect_cano = self.imagem.get_rect(center=(rect_tanque.midtop[0], rect_tanque.midtop[1] + 10))
         # aplica rotação na imagem do cano (sem alterar o centro inferior)
         imagem_rotacionada = pygame.transform.rotate(self.imagem, self.angulo)
-        rect_cano_rotacionado = imagem_rotacionada.get_rect(midbottom=rect_cano.midbottom)
+        rect_cano_rotacionado = imagem_rotacionada.get_rect(center=rect_cano.center)
         # desenha o cano rotacionado
         tela.blit(imagem_rotacionada, rect_cano_rotacionado.topleft)
 
@@ -122,6 +128,7 @@ class Bala:
         # deslocando a bala
         self.x += deslocamento
         self.y += deslocamento
+        self.x = self.x
 
     def desenhar(self, tela):
         # cria o retângulo para inserir a imagem na tela com a posição topleft
@@ -281,7 +288,7 @@ def main():
             cano_left.mover(direcao='down')
         # Tiro
         if teclas[pygame.K_SPACE]:
-            tanque_left.atirar()
+            tanque_left.atirar(tela)
 
         # Movimentação tanque direita
         # Tanque
@@ -296,7 +303,7 @@ def main():
             cano_right.mover(direcao='up')
         # Tiro
         if teclas[pygame.K_RSHIFT]:
-            tanque_right.atirar()
+            tanque_right.atirar(tela)
 
         # movendo os componentes da tela
         for bala in balas:
