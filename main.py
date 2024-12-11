@@ -129,19 +129,19 @@ class Bala:
         self.y = y
         self.lado = lado
         self.angulo_cano = angulo_cano
-        self.velocidade_base = 10
+        self.velocidade_base = 25
         self.tempo = 0
         self.imagem = IMG_BALA
 
     def mover(self, tela):
         # calcular o deslocamento
-        self.tempo += 1
+        self.tempo += 0.5
         # fórmula do sorvetão - S = S0 + V0.t + 1/2.a.t^2
-        deslocamento_y = 0.5 * (self.tempo**2) + self.velocidade_base * math.cos(self.angulo_cano) * self.tempo
-        deslocamento_x = self.tempo * self.velocidade_base * math.sin(self.angulo_cano)
+        deslocamento_y = +5 * (self.tempo**2) - self.velocidade_base * math.cos(math.radians(self.angulo_cano)) * self.tempo
+        deslocamento_x = self.tempo * self.velocidade_base * -1 * math.sin(math.radians(self.angulo_cano))
 
-        # self.y += deslocamento_y
-        # self.x += deslocamento_x
+        self.y += deslocamento_y
+        self.x += deslocamento_x
 
         self.desenhar(tela)
         pygame.display.update()
@@ -267,8 +267,8 @@ def main():
     muro = Muro()
     feno = Feno()
     nuvens = [Nuvem()]
-    cano_left = Cano(lado='l', angulo=0)
-    cano_right = Cano(lado='r', angulo=0)
+    cano_left = Cano(lado='l', angulo=-45)
+    cano_right = Cano(lado='r', angulo=45)
     tanque_left = Tanque(x=300, lado='l', cano=cano_left)
     tanque_right = Tanque(x=1000, lado='r', cano=cano_right)
     relogio = pygame.time.Clock()
