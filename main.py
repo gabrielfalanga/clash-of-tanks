@@ -68,7 +68,7 @@ class Tanque:
         if direcao == 'r':
             self.x += self.velocidade
 
-    def atirar(self, tela):
+    def atirar(self):
         rect_tanque = self.imagem.get_rect(topleft=(self.x, self.y))
         base_cano = (rect_tanque.midtop[0], rect_tanque.midtop[1] + 10)
         delta_cano = (55 * math.sin(math.radians(self.cano.angulo)), 55 * math.cos(math.radians(self.cano.angulo)))
@@ -79,8 +79,6 @@ class Tanque:
         print("Fim", fim_cano)
         print(self.x,self.y)
         bala = Bala(fim_cano[0], fim_cano[1], self.lado, self.cano.angulo)
-        bala.desenhar(tela)
-        pygame.display.update()
         self.balas.append(bala)
 
     # desenhar o tanque na tela
@@ -131,20 +129,18 @@ class Bala:
         self.angulo_cano = angulo_cano
         self.velocidade_base = 25
         self.tempo = 0
+        self.colidiu = False
         self.imagem = IMG_BALA
 
-    def mover(self, tela):
+    def mover(self):
         # calcular o deslocamento
         self.tempo += 0.5
         # fórmula do sorvetão - S = S0 + V0.t + 1/2.a.t^2
-        deslocamento_y = +5 * (self.tempo**2) - self.velocidade_base * math.cos(math.radians(self.angulo_cano)) * self.tempo
+        deslocamento_y = 5 * (self.tempo**2) - self.velocidade_base * math.cos(math.radians(self.angulo_cano)) * self.tempo
         deslocamento_x = self.tempo * self.velocidade_base * -1 * math.sin(math.radians(self.angulo_cano))
 
-        self.y += deslocamento_y
-        self.x += deslocamento_x
-
-        self.desenhar(tela)
-        pygame.display.update()
+        self.y += deslocamento_y 
+        self.x += deslocamento_x 
 
     def desenhar(self, tela):
         # cria o retângulo para inserir a imagem na tela com a posição topleft
@@ -258,6 +254,9 @@ def desenhar_tela(tela, muro: Muro, feno: Feno, nuvens: list[Nuvem], tanque_left
     # tanques
     tanque_left.desenhar(tela)
     tanque_right.desenhar(tela)
+    # balas 
+    for bala in tanque_left.balas + tanque_right.balas:
+        bala.desenhar(tela)
     # atualizar a tela
     pygame.display.update()
 
@@ -285,6 +284,14 @@ def main():
                 pygame.quit()
                 quit()
 
+            # atirar
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_SPACE:
+                    tanque_left.atirar()
+                
+                if evento.key == pygame.K_RSHIFT:
+                    tanque_right.atirar()
+
         teclas = pygame.key.get_pressed()
 
         # Movimentação tanque esquerda
@@ -298,9 +305,6 @@ def main():
             cano_left.mover(direcao='up')
         if teclas[pygame.K_s]:
             cano_left.mover(direcao='down')
-        # Tiro
-        if teclas[pygame.K_SPACE]:
-            tanque_left.atirar(tela)
 
         # Movimentação tanque direita
         # Tanque
@@ -313,13 +317,13 @@ def main():
             cano_right.mover(direcao='down')
         if teclas[pygame.K_DOWN]:
             cano_right.mover(direcao='up')
-        # Tiro
-        if teclas[pygame.K_RSHIFT]:
-            tanque_right.atirar(tela)
-
+        
         # movendo os componentes da tela
-        for bala in tanque_left.balas + tanque_right.balas:
-            bala.mover(tela)
+        for bala in tanque_left.balas:
+            bala.mover()
+        for bala in tanque_right.balas:
+            bala.mover()
+            
         for nuvem in nuvens:
             nuvem.mover()
         feno.mover()
